@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> TRACKLINK | Solución de Videovigilancia y Control de Flota</title>
+    <link rel="icon" type="image/png" href="tracklink_logo.png">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brandDark: '#0f172a',
+                        brandNavy: '#1e293b',
+                        brandBlue: '#00a8ff',
+                        brandBlueHover: '#0086cc',
+                        brandLightBg: '#f8fafc',
+                        brandSlate: '#64748b',
+                        brandBorder: '#e2e8f0'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'corporate': '0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02)',
+                        'card': '0 4px 20px rgba(0, 0, 0, 0.04)',
+                        'modal': '0 20px 40px -15px rgba(0, 0, 0, 0.15)'
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #1e293b;
+            overflow-x: hidden;
+        }
+
+        /* Slide display controls */
+        .slide {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.35s ease-in-out;
+        }
+        
+        .slide.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* Grid View Toggle */
+        .deck-container.grid-view {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            overflow-y: auto;
+            height: calc(100vh - 80px);
+        }
+
+        .deck-container.grid-view .slide {
+            display: flex !important;
+            opacity: 1 !important;
+            height: 480px !important;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid #e2e8f0;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .deck-container.grid-view .slide:hover {
+            transform: translateY(-4px);
+            border-color: #00a8ff;
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Tech SVG specs badge */
+        .spec-badge {
+            background-color: rgba(241, 245, 249, 0.8);
+            border-left: 3px solid #00a8ff;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col justify-between select-none">
+
+    <!-- EXECUTIVE HEADER -->
+    <header class="bg-white border-b border-brandBorder px-6 py-3.5 flex justify-between items-center z-30 shadow-sm shrink-0">
+        <!-- Logo TRACKLINK -->
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="goToSlide(0)">
+            <div class="flex items-center font-bold text-2xl tracking-tight text-slate-800">
+                <span class="text-brandNavy tracking-wider"><img src="tracklink_logo.png" alt="TRACKLINK Logo" class="h-8 w-auto"></span>
+                
+                <div class="ml-1 flex space-x-0.5">
+                    <span class="block w-1.5 h-4 bg-brandNavy transform -skew-x-12"></span>
+                    <span class="block w-1.5 h-4 bg-brandBlue transform -skew-x-12"></span>
+                    <span class="block w-1.5 h-4 bg-brandNavy transform -skew-x-12"></span>
+                </div>
+            </div>
+            <span class="hidden md:inline-block h-5 w-px bg-slate-300 mx-2"></span>
+            <span class="hidden md:inline-block text-xs font-semibold text-slate-500 uppercase tracking-wider">Videotelemetría Corporativa</span>
+        </div>
+
+        <!-- Center Slide Indicator -->
+        <div id="slideIndicator" class="hidden sm:flex items-center bg-slate-100 px-3 py-1 rounded-full border border-slate-200 text-xs font-medium text-slate-600">
+            Diapositiva <span id="currentSlideNum" class="text-brandBlue font-bold mx-1">1</span> de <span id="totalSlidesNum">7</span>
+        </div>
+
+        <!-- Action Controls -->
+        <div class="flex items-center space-x-3">
+            <button id="toggleViewBtn" onclick="toggleGridView()" class="text-xs font-semibold text-slate-600 hover:text-brandNavy bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-md border border-slate-200 transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-border-all"></i>
+                <span class="hidden sm:inline">Vista General</span>
+            </button>
+            <a href="mailto:comercial@tracklink.com?subject=Consulta%20JC371%20AI%20Dashcam" class="text-xs font-semibold text-white bg-brandNavy hover:bg-slate-800 px-4 py-2 rounded-md transition flex items-center space-x-1.5 shadow-sm">
+                <i class="fa-solid fa-envelope"></i>
+                <span class="hidden sm:inline">Solicitar Cotización</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- MAIN SLIDES CONTAINER -->
+    <main id="deckContainer" class="deck-container flex-1 relative bg-brandDark overflow-hidden flex items-center justify-center p-3 sm:p-6">
+
+        <!-- SLIDE 1: PORTADA EJECUTIVA -->
+        <section class="slide active w-full max-w-6xl h-full max-h-[720px] bg-white rounded-xl shadow-corporate flex-col justify-between p-8 sm:p-14 relative overflow-hidden">
+            <!-- Background Subtle Geometric Detail -->
+            <div class="absolute top-0 right-0 w-1/3 h-full bg-slate-50 border-l border-slate-100 hidden lg:block -z-0"></div>
+            <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-blue-50 rounded-full blur-3xl -z-0"></div>
+
+            <div class="z-10 flex flex-col justify-center h-full">
+                <div class="inline-flex items-center space-x-2 bg-slate-100 border border-slate-200 rounded-full px-3 py-1 w-fit mb-6">
+                    <span class="w-2 h-2 rounded-full bg-brandBlue"></span>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-700">Portafolio Telemático 2026</span>
+                </div>
+                
+                <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-brandNavy tracking-tight leading-tight mb-4">
+                    Jimi IoT <span class="text-brandBlue">JC371</span>
+                </h1>
+                <p class="text-xl sm:text-2xl font-medium text-slate-600 mb-6 max-w-2xl">
+                    Sistema Avanzado de Videovigilancia Multicanal 4G con Inteligencia Artificial Integrada
+                </p>
+                
+                <div class="w-20 h-1 bg-brandBlue mb-8"></div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mb-8">
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-100">
+                        <div class="text-brandBlue font-bold text-lg mb-1"><i class="fa-solid fa-brain mr-2"></i>IA Activa</div>
+                        <p class="text-xs text-slate-500">Alertas tempranas ADAS & monitoreo de conducta DMS en tiempo real.</p>
+                    </div>
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-100">
+                        <div class="text-brandBlue font-bold text-lg mb-1"><i class="fa-solid fa-shield-halved mr-2"></i>Protección 24/7</div>
+                        <p class="text-xs text-slate-500">Monitoreo continuo de vehículo apagado con sensor de impactos G.</p>
+                    </div>
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-100">
+                        <div class="text-brandBlue font-bold text-lg mb-1"><i class="fa-solid fa-microchip mr-2"></i>Memoria eMMC</div>
+                        <p class="text-xs text-slate-500">128GB ultradurable grado industrial blindada contra robos o fallas.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SVG Illustration of Main Hardware -->
+            <div class="absolute right-12 top-1/2 transform -translate-y-1/2 hidden lg:flex flex-col items-center justify-center z-10">
+                <div class="w-80 h-80 bg-white rounded-2xl shadow-card border border-slate-200 p-6 flex flex-col items-center justify-center relative">
+                    <!-- Dashcam Vector Graphic -->
+                    <img src="JC_371_.png" alt="JC371 Hardware" class="w-64 h-50 text-slate-800">
+                        <rect x="20" y="30" width="200" height="100" rx="12" fill="#1e293b" />
+                        <rect x="25" y="35" width="190" height="90" rx="8" fill="#0f172a" stroke="#334155" stroke-width="2"/>
+                        <!-- Main Lens -->
+                        <circle cx="120" cy="80" r="32" fill="#1e293b" stroke="#475569" stroke-width="3"/>
+                        <circle cx="120" cy="80" r="22" fill="#00a8ff" fill-opacity="0.2" stroke="#00a8ff" stroke-width="2"/>
+                        <circle cx="120" cy="80" r="10" fill="#090d16"/>
+                        <!-- IR LED sensors -->
+                        <circle cx="60" cy="80" r="4" fill="#38bdf8"/>
+                        <circle cx="180" cy="80" r="4" fill="#38bdf8"/>
+                        <!-- Status LED -->
+                        <circle cx="40" cy="50" r="3" fill="#22c55e"/>
+                        <circle cx="50" cy="50" r="3" fill="#38bdf8"/>
+                        <!-- Brand badge on body -->
+                        <rect x="90" y="125" width="60" height="10" rx="2" fill="#334155"/>
+                        <text x="120" y="132" fill="#ffffff" font-size="6" font-family="sans-serif" font-weight="bold" text-anchor="middle">JC371 4G</text>
+                    </svg>
+                    <span class="mt-4 text-xs font-bold text-slate-600 uppercase tracking-widest">Jimi IoT JC371 Hardware</span>
+                    <span class="text-[10px] text-slate-400">Certificación Internacional de Flotas</span>
+                </div>
+            </div>
+
+            <div class="z-10 flex justify-between items-center pt-4 border-t border-slate-100 text-xs text-slate-400">
+                <span>Presentación Corporativa Comercial</span>
+                <span>Exclusivo para TRACKLINK Client Services</span>
+            </div>
+        </section>
+
+        <!-- SLIDE 2: VISIÓN GENERAL DEL PRODUCTO -->
+        <section class="slide w-full max-w-6xl h-full max-h-[720px] bg-white rounded-xl shadow-corporate flex-col justify-between p-8 sm:p-12 relative overflow-hidden">
+            <div>
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <span class="text-xs font-bold text-brandBlue uppercase tracking-wider">Arquitectura Telemática</span>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-brandNavy">¿Qué es el Jimi IoT JC371?</h2>
+                    </div>
+                    <span class="text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1 rounded">Resumen Ejecutivo</span>
+                </div>
+
+                <p class="text-slate-600 text-sm sm:text-base leading-relaxed mb-6">
+                    El <strong>JC371</strong> no es una simple cámara de tablero comercial. Es un terminal telemático inteligente multicanal diseñado para operaciones de transporte exigentes. Integra en un solo dispositivo compacto procesamiento de Inteligencia Artificial en el borde, conectividad cellular 4G LTE y rastreo GPS continuo.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-4">
+                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <div class="w-10 h-10 rounded-lg bg-blue-100 text-brandBlue flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-video"></i>
+                            </div>
+                            <h3 class="font-bold text-brandNavy text-base">Grabación Multicanal Simultánea</h3>
+                        </div>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Soporta hasta 3 canales de video HD 1080P simultáneos. Permite visión frontal de la carretera, visión interna del habitáculo (DMS) y monitoreo de puntos ciegos laterales o de carga.
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <div class="w-10 h-10 rounded-lg bg-blue-100 text-brandBlue flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                            </div>
+                            <h3 class="font-bold text-brandNavy text-base">Conectividad Nube 4G LTE</h3>
+                        </div>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Módem celular Cat 4 integrado para streaming de video en directo, transmisión automática de clips de eventos de riesgo y carga instantánea de datos telemáticos a servidor.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Commercial Application Targets -->
+                <div class="mt-4 pt-4 border-t border-slate-100">
+                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Sectores Objetivos de Aplicación</h4>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-md border border-slate-200"><i class="fa-solid fa-truck-fast mr-1.5 text-brandBlue"></i>Transporte de Carga y Logística</span>
+                        <span class="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-md border border-slate-200"><i class="fa-solid fa-bus mr-1.5 text-brandBlue"></i>Transporte Público y Pasajeros</span>
+                        <span class="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-md border border-slate-200"><i class="fa-solid fa-truck-droplet mr-1.5 text-brandBlue"></i>Materiales Peligrosos (HAZMAT)</span>
+                        <span class="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-md border border-slate-200"><i class="fa-solid fa-car-side mr-1.5 text-brandBlue"></i>Flotas Corporativas / Rideshare</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-4 border-t border-slate-100 text-xs text-slate-400">
+                <span><img src="tracklink_logo.png" alt="TRACKLINK Logo" class="h-8 w-auto"> | Soluciones Telemáticas</span>
+                <span>Sección 01 / Introducción</span>
+            </div>
+        </section>
+
+        <!-- SLIDE 3: ESPECIFICACIONES TÉCNICAS -->
+        <section class="slide w-full max-w-6xl h-full max-h-[720px] bg-white rounded-xl shadow-corporate flex-col justify-between p-8 sm:p-12 relative overflow-hidden">
+            <div>
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <span class="text-xs font-bold text-brandBlue uppercase tracking-wider">Ficha Hardware</span>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-brandNavy">Especificaciones y Almacenamiento Dual</h2>
+                    </div>
+                    <span class="text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1 rounded">Ficha Técnica</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Column 1: Processing & Camera -->
+                    <div class="space-y-4">
+                        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-2">Óptica y Procesamiento</h3>
+                        
+                        <div class="spec-badge p-3 rounded">
+                            <span class="block text-xs font-bold text-slate-700">Procesador Principal</span>
+                            <span class="text-xs text-slate-600">Chipset de alto rendimiento SigmaStar SSC33</span>
+                        </div>
+                        <div class="spec-badge p-3 rounded">
+                            <span class="block text-xs font-bold text-slate-700">Sensor de Imagen Principal</span>
+                            <span class="text-xs text-slate-600">Sony STARVIS (Visión Nocturna Ultra Clara)</span>
+                        </div>
+                        <div class="spec-badge p-3 rounded">
+                            <span class="block text-xs font-bold text-slate-700">Resolución & Cuadros</span>
+                            <span class="text-xs text-slate-600">Full HD 1080P @ 30 FPS (H.264 / H.265)</span>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Storage Dual (Highlight) -->
+                    <div class="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <h3 class="text-sm font-bold text-brandNavy uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center justify-between">
+                            <span>Almacenamiento Dual</span>
+                            <i class="fa-solid fa-hard-drive text-brandBlue"></i>
+                        </h3>
+
+                        <div class="bg-white p-3 rounded border border-slate-200">
+                            <span class="block text-xs font-bold text-brandBlue">128 GB Memoria Interna eMMC</span>
+                            <p class="text-[11px] text-slate-600 mt-1">
+                                Integrada en placa. Ofrece más de 10 años de vida útil, velocidad superior y resguardo inviolable en caso de sustracción de la tarjeta externa.
+                            </p>
+                        </div>
+
+                        <div class="bg-white p-3 rounded border border-slate-200">
+                            <span class="block text-xs font-bold text-slate-700">Ranura MicroSD Externa</span>
+                            <p class="text-[11px] text-slate-600 mt-1">
+                                Expansionable hasta 256 GB (Clase 10 / UHS-I) para almacenamiento prolongado en bucle continuo.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Column 3: Connectivity & Electrical -->
+                    <div class="space-y-4">
+                        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-2">Conectividad y Energía</h3>
+
+                        <div class="spec-badge p-3 rounded">
+                            <span class="block text-xs font-bold text-slate-700">Red Celular & GNSS</span>
+                            <span class="text-xs text-slate-600">4G LTE Cat 4 + GPS / BDS / AGPS alta precisión</span>
+                        </div>
+                        <div class="spec-badge p-3 rounded">
+                            <span class="block text-xs font-bold text-slate-700">Rango de Voltaje Vehicular</span>
+                            <span class="text-xs text-slate-600">DC 9V a 30V (Compatibilidad 12V y 24V)</span>
+                        </div>
+                        <div class="spec-badge p-3 rounded">
+                            <span class="block text-xs font-bold text-slate-700">Resistencia Térmica</span>
+                            <span class="text-xs text-slate-600">Rango industrial de operación: –20°C a +70°C</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-4 border-t border-slate-100 text-xs text-slate-400">
+                <span><img src="tracklink_logo.png" alt="TRACKLINK Logo" class="h-8 w-auto"> | Soluciones Telemáticas</span>
+                <span>Sección 02 / Hardware & Specs</span>
+            </div>
+        </section>
+
+        <!-- SLIDE 4: INTELIGENCIA ARTIFICIAL (ADAS & DMS) -->
+        <section class="slide w-full max-w-6xl h-full max-h-[720px] bg-white rounded-xl shadow-corporate flex-col justify-between p-8 sm:p-12 relative overflow-hidden">
+            <div>
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <span class="text-xs font-bold text-brandBlue uppercase tracking-wider">Prevención de Riesgos</span>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-brandNavy">Inteligencia Artificial Activa: ADAS & DMS</h2>
+                    </div>
+                    <span class="text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1 rounded">Algoritmos de Borde</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- ADAS Box -->
+                    <div class="border border-slate-200 rounded-xl p-6 bg-slate-50 relative">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-brandNavy text-lg flex items-center">
+                                <i class="fa-solid fa-road text-brandBlue mr-2"></i> ADAS (Asistencia al Conductor)
+                            </h3>
+                            <span class="text-[10px] uppercase tracking-wider font-semibold bg-blue-100 text-brandBlue px-2 py-0.5 rounded">Cámara Frontal</span>
+                        </div>
+                        <ul class="space-y-3 text-xs text-slate-700">
+                            <li class="flex items-start">
+                                <i class="fa-solid fa-triangle-exclamation text-amber-500 mt-0.5 mr-2"></i>
+                                <div><strong>FCW (Alerta Colisión Frontal):</strong> Detecta proximidad crítica con vehículos en el carril.</div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa-solid fa-arrows-left-right text-brandBlue mt-0.5 mr-2"></i>
+                                <div><strong>LDW (Abandono de Carril):</strong> Avisa sobre desvíos involuntarios sin señalizar.</div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa-solid fa-person-walking text-rose-500 mt-0.5 mr-2"></i>
+                                <div><strong>PCW (Peatones):</strong> Alerta de presencia de vulnerables en vía.</div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa-solid fa-stopwatch text-slate-600 mt-0.5 mr-2"></i>
+                                <div><strong>HMW (Distancia Segura):</strong> Monitorea intervalos de tiempo respecto al vehículo delantero.</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- DMS Box -->
+                    <div class="border border-slate-200 rounded-xl p-6 bg-slate-50 relative">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-brandNavy text-lg flex items-center">
+                                <i class="fa-solid fa-user-shield text-brandBlue mr-2"></i> DMS (Monitoreo de Conductor)
+                            </h3>
+                            <span class="text-[10px] uppercase tracking-wider font-semibold bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Cámara Cabina IR</span>
+                        </div>
+                        <ul class="space-y-3 text-xs text-slate-700">
+                            <li class="flex items-start">
+                                <i class="fa-solid fa-bed text-rose-500 mt-0.5 mr-2"></i>
+                                <div><strong>Detección de Fatiga:</strong> Identifica bostezos repetitivos o cierre prolongado de ojos.</div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa-solid fa-mobile-screen-button text-amber-500 mt-0.5 mr-2"></i>
+                                <div><strong>Uso de Celular & Distracción:</strong> Alerta cuando el conductor desvía la mirada o habla por teléfono.</div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa-solid fa-joint text-slate-600 mt-0.5 mr-2"></i>
+                                <div><strong>Fumar en Cabina:</strong> Detecta cigarrillos encendidos en interiores restringidos.</div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa-solid fa-circle-check text-emerald-600 mt-0.5 mr-2"></i>
+                                <div><strong>Cinturón de Seguridad:</strong> Verifica uso obligatorio del cinturón antes y durante la marcha.</div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-4 border-t border-slate-100 text-xs text-slate-400">
+                <span><img src="tracklink_logo.png" alt="TRACKLINK Logo" class="h-8 w-auto"> | Soluciones Telemáticas</span>
+                <span>Sección 03 / Seguridad IA</span>
+            </div>
+        </section>
+
+        <!-- SLIDE 5: VEHÍCULO APAGADO & SEGURIDAD ESTACIONADO -->
+        <section class="slide w-full max-w-6xl h-full max-h-[720px] bg-white rounded-xl shadow-corporate flex-col justify-between p-8 sm:p-12 relative overflow-hidden">
+            <div>
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <span class="text-xs font-bold text-brandBlue uppercase tracking-wider">Protección 24 Horas</span>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-brandNavy">Operatividad en Modo Estacionamiento</h2>
+                    </div>
+                    <span class="text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1 rounded">Vigilancia Continua</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Item 1 -->
+                    <div class="p-5 rounded-xl border border-slate-200 bg-slate-50 flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 rounded-lg bg-slate-200 text-slate-800 flex items-center justify-center font-bold mb-4">
+                                <i class="fa-solid fa-car-burst text-brandNavy"></i>
+                            </div>
+                            <h3 class="font-bold text-brandNavy text-base mb-2">Sensor G de Impactos</h3>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                Ante sacudidas, choques de estacionamiento o forzado de puertas con motor apagado, el acelerómetro despierta al equipo para grabar y proteger el archivo.
+                            </p>
+                        </div>
+                        <span class="mt-4 text-[11px] font-semibold text-brandBlue">Resguardo Anti-sobrescritura</span>
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="p-5 rounded-xl border border-slate-200 bg-slate-50 flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-bold mb-4">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <h3 class="font-bold text-brandNavy text-base mb-2">Botón de Pánico (SOS)</h3>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                Permite al operador activar manualmente una alarma remota y grabación prioritaria, incluso estando estacionado y con la ignición desconectada.
+                            </p>
+                        </div>
+                        <span class="mt-4 text-[11px] font-semibold text-rose-600">Alarma Inmediata a Central</span>
+                    </div>
+
+                    <!-- Item 3 -->
+                    <div class="p-5 rounded-xl border border-slate-200 bg-slate-50 flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 rounded-lg bg-blue-100 text-brandBlue flex items-center justify-center font-bold mb-4">
+                                <i class="fa-solid fa-tower-cell"></i>
+                            </div>
+                            <h3 class="font-bold text-brandNavy text-base mb-2">Streaming Bajo Demanda</h3>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                El administrador de flota puede conectarse en vivo a las cámaras o consultar la ubicación GPS en cualquier momento desde la app móvil.
+                            </p>
+                        </div>
+                        <span class="mt-4 text-[11px] font-semibold text-brandBlue">Conexión 4G en Reposo</span>
+                    </div>
+                </div>
+
+                <!-- Protective Note -->
+                <div class="mt-6 bg-slate-100 p-4 rounded-lg border border-slate-200 flex items-center space-x-4">
+                    <i class="fa-solid fa-battery-three-quarters text-brandNavy text-xl"></i>
+                    <p class="text-xs text-slate-700">
+                        <strong>Protección Inteligente de Batería:</strong> La instalación con arnés de 3 hilos (VCC/ACC/GND) incluye un regulador de voltaje que apaga el módulo si detecta que la batería del vehículo desciende de 11.8V, garantizando siempre el encendido del motor.
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-4 border-t border-slate-100 text-xs text-slate-400">
+                <span><img src="tracklink_logo.png" alt="TRACKLINK Logo" class="h-8 w-auto">| Soluciones Telemáticas</span>
+                <span>Sección 04 / Seguridad 24/7</span>
+            </div>
+        </section>
+
+        <!-- SLIDE 6: PERIFÉRICOS & EXPANDIBILIDAD -->
+        <section class="slide w-full max-w-6xl h-full max-h-[720px] bg-white rounded-xl shadow-corporate flex-col justify-between p-8 sm:p-12 relative overflow-hidden">
+            <div>
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <span class="text-xs font-bold text-brandBlue uppercase tracking-wider">Ecosistema Integrado</span>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-brandNavy">Conectividad & Periféricos Expandibles</h2>
+                    </div>
+                    <span class="text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1 rounded">Integración I/O</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Left: Peripherals -->
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Accesorios y Sensores Compatibles</h3>
+
+                        <div class="flex items-start space-x-3 p-3 rounded-lg border border-slate-200 bg-slate-50">
+                            <i class="fa-solid fa-door-open text-brandBlue mt-1"></i>
+                            <div>
+                                <h4 class="font-bold text-xs text-brandNavy">Sensores Magnéticos de Puertas</h4>
+                                <p class="text-[11px] text-slate-600">Detecta aperturas de puertas de cabina o furgones de carga en tiempo real.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start space-x-3 p-3 rounded-lg border border-slate-200 bg-slate-50">
+                            <i class="fa-solid fa-key text-brandBlue mt-1"></i>
+                            <div>
+                                <h4 class="font-bold text-xs text-brandNavy">Relé de Inmovilización Remota</h4>
+                                <p class="text-[11px] text-slate-600">Permite el apagado seguro de motor desde la plataforma Tracksolid Pro ante emergencias.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start space-x-3 p-3 rounded-lg border border-slate-200 bg-slate-50">
+                            <i class="fa-solid fa-temperature-arrow-up text-brandBlue mt-1"></i>
+                            <div>
+                                <h4 class="font-bold text-xs text-brandNavy">Telemetría Avanzada (Temp / Combustible)</h4>
+                                <p class="text-[11px] text-slate-600">Compatible con varillas de combustible y sensores de cadena de frío en transporte refrigerado.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Software Ecosystem mockup -->
+                    <div class="border border-slate-200 rounded-xl p-5 bg-brandDark text-white flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="text-xs font-bold text-brandBlue tracking-wider">PLATAFORMA INTEGRADA</span>
+                                <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded">Tracksolid Pro</span>
+                            </div>
+                            <!-- Mock UI Dashboard -->
+                            <div class="bg-slate-900 rounded-lg p-3 border border-slate-800 space-y-2 mb-4">
+                                <div class="flex justify-between items-center text-[10px] border-b border-slate-800 pb-2 text-slate-400">
+                                    <span>Vehículo: CAMION-042</span>
+                                    <span class="text-emerald-400 font-semibold"><i class="fa-solid fa-signal mr-1"></i>4G Online</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 text-[10px]">
+                                    <div class="bg-slate-800 p-2 rounded text-slate-300">
+                                        <span class="block text-slate-500 text-[9px]">Velocidad</span>
+                                        <strong>68 km/h</strong>
+                                    </div>
+                                    <div class="bg-slate-800 p-2 rounded text-slate-300">
+                                        <span class="block text-slate-500 text-[9px]">Estado ADAS</span>
+                                        <strong class="text-brandBlue">Normal</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                El hardware JC371 se homologa perfectamente con nuestra plataforma para ofrecer reportes analíticos de comportamiento, consumo de flota y reconstrucción en video de siniestros.
+                            </p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-800 text-[10px] text-slate-400 flex justify-between">
+                            <span>Protocolos Abiertos (Flespi/API)</span>
+                            <span>Soporte Integración CRM</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-4 border-t border-slate-100 text-xs text-slate-400">
+                <span><img src="tracklink_logo.png" alt="TRACKLINK Logo" class="h-8 w-auto"> | Soluciones Telemáticas</span>
+                <span>Sección 05 / Periféricos</span>
+            </div>
+        </section>
+
+        <!-- SLIDE 7: PROPUESTA DE VALOR & CONTACTO COMERCIAL -->
+        <section class="slide w-full max-w-6xl h-full max-h-[720px] bg-white rounded-xl shadow-corporate flex-col justify-between p-8 sm:p-12 relative overflow-hidden">
+            <div>
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <span class="text-xs font-bold text-brandBlue uppercase tracking-wider">Resumen Comercial</span>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-brandNavy">¿Por qué elegir la Solución TRACKLINK + JC371?</h2>
+                    </div>
+                    <span class="text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1 rounded">Propuesta de Valor</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 text-center">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 text-brandBlue flex items-center justify-center mx-auto mb-3 font-bold">
+                            <i class="fa-solid fa-shield-cat"></i>
+                        </div>
+                        <h3 class="font-bold text-brandNavy text-sm mb-1">Reducción de Siniestros</h3>
+                        <p class="text-[11px] text-slate-600">Disminución de hasta un 40% en accidentes gracias a alertas ADAS/DMS.</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 text-center">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 text-brandBlue flex items-center justify-center mx-auto mb-3 font-bold">
+                            <i class="fa-solid fa-scale-balanced"></i>
+                        </div>
+                        <h3 class="font-bold text-brandNavy text-sm mb-1">Evidencia Legal</h3>
+                        <p class="text-[11px] text-slate-600">Resguardo eMMC blindado para protección contra reclamos falsos.</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 text-center">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 text-brandBlue flex items-center justify-center mx-auto mb-3 font-bold">
+                            <i class="fa-solid fa-gas-pump"></i>
+                        </div>
+                        <h3 class="font-bold text-brandNavy text-sm mb-1">Eficiencia Operativa</h3>
+                        <p class="text-[11px] text-slate-600">Optimización de rutas, control de ralentí y mejora de hábitos de conducción.</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 text-center">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 text-brandBlue flex items-center justify-center mx-auto mb-3 font-bold">
+                            <i class="fa-solid fa-headset"></i>
+                        </div>
+                        <h3 class="font-bold text-brandNavy text-sm mb-1">Soporte Local <img src="tracklink_logo.png" alt="TRACKLINK Logo" class="h-8 w-auto"></h3>
+                        <p class="text-[11px] text-slate-600">Garantía corporativa, instalación profesional y homologación completa.</p>
+                    </div>
+                </div>
+
+                <!-- Call to action block -->
+                <div class="bg-brandNavy text-white p-6 rounded-xl flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                    <div>
+                        <h3 class="font-bold text-lg mb-1">Solicite una Demostración en Vivo para su Flota</h3>
+                        <p class="text-xs text-slate-300">Nuestros ingenieros de soluciones prepararán un plan piloto a la medida de su empresa.</p>
+                    </div>
+                    <button onclick="openContactModal()" class="bg-brandBlue hover:bg-brandBlueHover text-white font-bold text-xs px-6 py-3 rounded-lg transition shadow-md whitespace-nowrap">
+                        Agendar Prueba Piloto <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-4 border-t border-slate-100 text-xs text-slate-400">
+                <span><img src="tracklink_logo.png" alt="TRACKLINK Logo" class="h-8 w-auto"> © 2026 Todos los derechos reservados.</span>
+                <span>Contacto: comercial@tracklink.com</span>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER NAVIGATION CONTROLS -->
+    <footer class="bg-white border-t border-brandBorder px-6 py-3 flex justify-between items-center z-30 shrink-0">
+        <button id="prevBtn" onclick="prevSlide()" class="text-xs font-semibold text-slate-700 hover:text-brandBlue disabled:opacity-30 disabled:cursor-not-allowed flex items-center space-x-2 px-3 py-1.5 rounded border border-slate-200">
+            <i class="fa-solid fa-chevron-left"></i>
+            <span>Anterior</span>
+        </button>
+
+        <!-- Dots navigation -->
+        <div id="dotsContainer" class="flex space-x-2"></div>
+
+        <button id="nextBtn" onclick="nextSlide()" class="text-xs font-semibold text-white bg-brandBlue hover:bg-brandBlueHover disabled:opacity-30 disabled:cursor-not-allowed flex items-center space-x-2 px-4 py-1.5 rounded transition">
+            <span>Siguiente</span>
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+    </footer>
+
+    <!-- CONTACT MODAL -->
+    <div id="contactModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-modal max-w-md w-full p-6 relative">
+            <button onclick="closeContactModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 class="text-xl font-bold text-brandNavy mb-2">Solicitar Información Comercial</h3>
+            <p class="text-xs text-slate-600 mb-4">Complete los datos para que un asesor corporativo de TRACKLINK se ponga en contacto.</p>
+            
+            <form onsubmit="handleFormSubmit(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Nombre Completo</label>
+                    <input type="text" required placeholder="Ej. Carlos Mendoza" class="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:border-brandBlue">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Empresa / Flota</label>
+                    <input type="text" required placeholder="Ej. Logística Transporte S.A." class="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:border-brandBlue">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Correo Corporativo</label>
+                    <input type="email" required placeholder="carlos@empresa.com" class="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:border-brandBlue">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Número de Vehículos</label>
+                    <select class="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:border-brandBlue bg-white">
+                        <option>1 - 10 vehículos</option>
+                        <option>11 - 50 vehículos</option>
+                        <option>Más de 50 vehículos</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full bg-brandNavy hover:bg-slate-800 text-white font-bold py-2.5 rounded transition mt-2">
+                    Enviar Solicitud
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        const deckContainer = document.getElementById('deckContainer');
+        const dotsContainer = document.getElementById('dotsContainer');
+        let isGridView = false;
+
+        // Initialize presentation controls
+        function initDeck() {
+            document.getElementById('totalSlidesNum').textContent = totalSlides;
+            createDots();
+            updateSlideVisibility();
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (isGridView) return;
+                if (e.key === 'ArrowRight' || e.key === 'Space') {
+                    nextSlide();
+                } else if (e.key === 'ArrowLeft') {
+                    prevSlide();
+                }
+            });
+        }
+
+        // Render Dots
+        function createDots() {
+            dotsContainer.innerHTML = '';
+            slides.forEach((_, index) => {
+                const dot = document.createElement('button');
+                dot.className = `w-2.5 h-2.5 rounded-full transition-all ${index === currentSlide ? 'bg-brandBlue w-6' : 'bg-slate-300 hover:bg-slate-400'}`;
+                dot.onclick = () => goToSlide(index);
+                dotsContainer.appendChild(dot);
+            });
+        }
+
+        // Update active slide state
+        function updateSlideVisibility() {
+            slides.forEach((slide, index) => {
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+
+            document.getElementById('currentSlideNum').textContent = currentSlide + 1;
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+
+            createDots();
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateSlideVisibility();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlideVisibility();
+            }
+        }
+
+        function goToSlide(index) {
+            if (isGridView) {
+                toggleGridView();
+            }
+            currentSlide = index;
+            updateSlideVisibility();
+        }
+
+        // Grid View Toggle
+        function toggleGridView() {
+            isGridView = !isGridView;
+            const toggleBtn = document.getElementById('toggleViewBtn');
+
+            if (isGridView) {
+                deckContainer.classList.add('grid-view');
+                toggleBtn.innerHTML = '<i class="fa-solid fa-play"></i><span class="hidden sm:inline">Modo Presentación</span>';
+            } else {
+                deckContainer.classList.remove('grid-view');
+                toggleBtn.innerHTML = '<i class="fa-solid fa-border-all"></i><span class="hidden sm:inline">Vista General</span>';
+                updateSlideVisibility();
+            }
+        }
+
+        // Contact Modal handlers
+        function openContactModal() {
+            document.getElementById('contactModal').classList.remove('hidden');
+            document.getElementById('contactModal').classList.add('flex');
+        }
+
+        function closeContactModal() {
+            document.getElementById('contactModal').classList.add('hidden');
+            document.getElementById('contactModal').classList.remove('flex');
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            alert('¡Gracias por su interés! Un consultor corporativo de TRACKLINK se pondrá en contacto a la brevedad.');
+            closeContactModal();
+        }
+
+        // Start presentation on load
+        window.onload = initDeck;
+    </script>
+</body>
+</html>
